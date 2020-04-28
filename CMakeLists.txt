@@ -32,6 +32,10 @@ add_executable(init_and_node_thread src/init_and_node_thread.cpp src/util.cpp)
 ament_target_dependencies(init_and_node_thread rclcpp rttest tlsf_cpp)
 install(TARGETS init_and_node_thread DESTINATION lib/${PROJECT_NAME})
 
+add_executable(timer_cb_latency_spin_some src/timer_cb_latency_spin_some.cpp src/util.cpp)
+ament_target_dependencies(timer_cb_latency_spin_some rclcpp rttest tlsf_cpp)
+install(TARGETS timer_cb_latency_spin_some DESTINATION lib/${PROJECT_NAME})
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
