@@ -1,120 +1,157 @@
-#include "rcl/timer.h"
+
 #include "rclcpp/executors.hpp"
 #include "rclcpp/node.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "ros2_timer_callback_latency_measurement/util.hpp"
 #include "rttest/rttest.h"
 #include "rttest/utils.h"
 #include <bits/stdint-uintn.h>
 #include <chrono>
-#include <errno.h>
+#include <getopt.h> // for getopt_long
 #include <limits.h>
 #include <rclcpp/strategies/allocator_memory_strategy.hpp>
 #include <rclcpp/strategies/message_pool_memory_strategy.hpp>
 #include <sched.h>
-#include <signal.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/resource.h>
-#include <sys/time.h>
 #include <tlsf_cpp/tlsf.hpp>
 #include <type_traits>
 #include <unistd.h>
+#include <unistd.h> // for getopt
 
 #include <malloc.h>
 #include <sys/mman.h>
 
-
-using rclcpp::memory_strategies::allocator_memory_strategy::
-    AllocatorMemoryStrategy;
-
-template <typename T = void> using TLSFAllocator = tlsf_heap_allocator<T>;
-
-void print_rusage(const struct rusage &before, const struct rusage &after);
-
-using namespace std;
 using namespace std::chrono_literals;
+using namespace std;
+
+using rclcpp::memory_strategies::allocator_memory_strategy:: AllocatorMemoryStrategy;
+
+struct Params {
+  rttest_params rt;
+  bool realtime_child;
+  string cb_hist_filename;
+  string cb_topn_filename;
+  string cb_timeseries_filename;
+};
+
+Params get_params(int argc, char *argv[]);
 
 class Timer : public rclcpp::Node {
 public:
   explicit Timer(const rclcpp::NodeOptions &options) : Node("timer", options) {
     auto callback = [this]() -> void {
       count_++;
-      if (rcl_timer_get_time_since_last_call(
-              &(*timer_->get_timer_handle()), &latency_) == RCL_RET_OK) {
-        wakeup_latencies_[count_] = latency_;
+      if (rcl_timer_get_time_since_last_call(&(*timer_->get_timer_handle()),
+                                             &latency_) == RCL_RET_OK) {
+        cbHist->add(latency_);
+        cbTimeSeries->add(latency_);
+      }
+      if (count_ > count_max_) {
+        raise(SIGINT);
       }
     };
 
-    auto kill = []() -> void { raise(SIGINT); };
-
     timer_ = create_wall_timer(10ms, callback);
-    timer_kill_ = create_wall_timer(2h, kill);
+
   }
-  int64_t latency_;
-  int64_t wakeup_latencies_[2000000];
+
+
+  HistReport *cbHist;
+  TimeSeriesReport *cbTimeSeries;
   int count_ = 0;
-  rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::TimerBase::SharedPtr timer_kill_;
+  int count_max_;
+
+ private:
+   int64_t latency_;
+   rclcpp::TimerBase::SharedPtr timer_;
 };
 
-int main(int argc, char *argv[])
-{
+template <typename T = void> using TLSFAllocator = tlsf_heap_allocator<T>;
+int main(int argc, char *argv[]) {
+  Params params = get_params(argc, argv);
 
+  if (params.realtime_child && rttest_set_thread_default_priority()) {
+    perror("Couldn't set scheduling priority and policy");
+    // return -1;
+  }
   rclcpp::init(argc, argv);
-  rclcpp::NodeOptions options;
+
+  rclcpp::executor::ExecutorArgs args;
   rclcpp::memory_strategy::MemoryStrategy::SharedPtr memory_strategy =
       std::make_shared<AllocatorMemoryStrategy<TLSFAllocator<void>>>();
 
-  rclcpp::executor::ExecutorArgs args;
   args.memory_strategy = memory_strategy;
   auto exec = std::make_shared<rclcpp::executors::SingleThreadedExecutor>(args);
-  auto node = std::make_shared<Timer>(options);
+  rclcpp::NodeOptions options;
+  auto node = make_shared<Timer>(options);
   exec->add_node(node);
-
-  if (rttest_set_sched_priority(98, SCHED_RR)) {
+  if (!params.realtime_child && rttest_set_thread_default_priority()) {
     perror("Couldn't set scheduling priority and policy");
+    // return -1;
   }
 
   if (rttest_lock_and_prefault_dynamic() != 0) {
-    fprintf(stderr, "Couldn't lock all cached virtual memory. errno = %d \n", errno);
+    fprintf(stderr, "Couldn't lock all cached virtual memory. errno = %d \n",
+            errno);
     fprintf(stderr, "Pagefaults from reading pages not yet mapped into RAM "
                     "will be recorded.\n");
   }
 
-
-  struct rusage usage_start, usage_end;
-
-  if (getrusage(RUSAGE_SELF, &usage_start) != 0) {
-    perror("Couldn't get rusage");
-  }
+  node->count_max_ = params.rt.iterations;
+  node->cbHist = new HistReport(100);
+  node->cbTimeSeries = new TimeSeriesReport(params.rt.iterations);
 
   exec->spin();
 
-  if (getrusage(RUSAGE_SELF, &usage_end) != 0) {
-    perror("Couldn't get rusage");
-  }
-  print_rusage(usage_start, usage_end);
-
-  for (int i = 1; i < node->count_; i++) {
-    printf("%d,%llu \n", i, node->wakeup_latencies_[i]);
-  }
+  node->cbHist->saveHist(params.cb_hist_filename);
+  node->cbHist->saveTopN(params.cb_topn_filename);
+  node->cbTimeSeries->save(params.cb_timeseries_filename);
   rclcpp::shutdown();
   return 0;
 }
 
-void print_rusage(const struct rusage &before, const struct rusage &after)
-{
-  cerr << "minor page fault : ";
-  cerr << after.ru_minflt - before.ru_minflt << endl;
+Params get_params(int argc, char *argv[]) {
+  Params params;
+  int realtime_child = 0; // default: non-realtime
 
-  cerr << "major page fault : ";
-  cerr << after.ru_majflt - before.ru_majflt << endl;
+  const struct option longopts[] = {
+      {"realtime_child_thread", no_argument, &realtime_child, 1},
+      {"non_realtime_child_thread", no_argument, &realtime_child, 0},
+      {"cb_hist_filename", required_argument, 0, 'h'},
+      {"cb_topn_filename", required_argument, 0, 'n'},
+      {"cb_timeseries_filename", required_argument, 0, 't'},
+      {0, 0, 0, 0},
+  };
 
-  cerr << "swap : ";
-  cerr << after.ru_nswap - before.ru_nswap << endl;
+  opterr = 0;
+  optind = 1;
+  int longindex = 0;
+  const std::string optstring = "+";
+  int c;
 
-  cerr << "voluntary context switches : ";
-  cerr << after.ru_nvcsw - before.ru_nvcsw << endl;
+  while ((c = getopt_long(argc, argv, optstring.c_str(), longopts,
+                          &longindex)) != -1) {
+    switch (c) {
+    case ('h'):
+      params.cb_hist_filename = optarg;
+      break;
+    case ('n'):
+      params.cb_topn_filename = optarg;
+      break;
+    case ('t'):
+      params.cb_timeseries_filename = optarg;
+      break;
+    }
+  }
+  params.realtime_child = realtime_child;
 
-  cerr << "involuntary context switches : ";
-  cerr << after.ru_nivcsw - before.ru_nivcsw << endl;
+  argc -= optind - 2;
+  argv += optind - 2;
+
+  cout << argv[1] << endl;
+  if (rttest_read_args(argc, argv) != 0) {
+    perror("Couldn't read arguments for rttest");
+  }
+  rttest_get_params(&params.rt);
+  
+  return params;
 }
