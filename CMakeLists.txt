@@ -28,6 +28,10 @@ add_executable(init_thread src/init_thread.cpp src/util.cpp)
 ament_target_dependencies(init_thread rclcpp std_msgs rttest tlsf_cpp)
 install(TARGETS init_thread DESTINATION lib/${PROJECT_NAME})
 
+add_executable(init_and_node_thread src/init_and_node_thread.cpp src/util.cpp)
+ament_target_dependencies(init_and_node_thread rclcpp rttest tlsf_cpp)
+install(TARGETS init_and_node_thread DESTINATION lib/${PROJECT_NAME})
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
