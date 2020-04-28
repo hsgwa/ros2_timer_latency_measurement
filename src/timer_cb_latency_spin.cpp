@@ -42,8 +42,12 @@ public:
       count_++;
       if (rcl_timer_get_time_since_last_call(&(*timer_->get_timer_handle()),
                                              &latency_) == RCL_RET_OK) {
-        cbHist->add(latency_);
-        cbTimeSeries->add(latency_);
+        if (cbHist) {
+          cbHist->add(latency_);
+        }
+        if (cbTimeSeries) {
+          cbTimeSeries->add(latency_);
+        }
       }
       if (count_ > count_max_) {
         raise(SIGINT);
@@ -53,7 +57,6 @@ public:
     timer_ = create_wall_timer(10ms, callback);
 
   }
-
 
   HistReport *cbHist;
   TimeSeriesReport *cbTimeSeries;
@@ -96,15 +99,25 @@ int main(int argc, char *argv[]) {
                     "will be recorded.\n");
   }
 
-  node->count_max_ = params.rt.iterations;
-  node->cbHist = new HistReport(100);
-  node->cbTimeSeries = new TimeSeriesReport(params.rt.iterations);
+  if (!params.cb_hist_filename.empty() || !params.cb_topn_filename.empty()) {
+    node->cbHist = new HistReport(100);
+  }
+  if (!params.cb_timeseries_filename.empty()) {
+    node->cbTimeSeries = new TimeSeriesReport(params.rt.iterations);
+  }
 
+  node->count_max_ = params.rt.iterations;
   exec->spin();
 
-  node->cbHist->saveHist(params.cb_hist_filename);
-  node->cbHist->saveTopN(params.cb_topn_filename);
-  node->cbTimeSeries->save(params.cb_timeseries_filename);
+  if (!params.cb_hist_filename.empty() ) {
+    node->cbHist->saveHist(params.cb_hist_filename);
+  }
+  if (!params.cb_topn_filename.empty()) {
+    node->cbHist->saveTopN(params.cb_topn_filename);
+  }
+  if (!params.cb_timeseries_filename.empty()) {
+    node->cbTimeSeries->save(params.cb_timeseries_filename);
+  }
   rclcpp::shutdown();
   return 0;
 }

@@ -52,8 +52,14 @@ int main(int argc, char *argv[]) {
     // return -1;
   }
 
-  HistReport hist(100);
-  TimeSeriesReport timeSeries(params.rt.iterations);
+  HistReport *hist = nullptr;
+  TimeSeriesReport *timeSeries =nullptr;
+  if ( !params.hist_filename.empty() || !params.timeseries_filename.empty()) {
+    hist = new HistReport(100);
+  }
+  if (!params.timeseries_filename.empty()) {
+    timeSeries = new TimeSeriesReport(params.rt.iterations);
+  }
 
   struct timespec expected, wakeup, wakeup_latency;
   vector<uint64_t> wakeup_latencies(params.rt.iterations);
@@ -77,13 +83,23 @@ int main(int argc, char *argv[]) {
     subtract_timespecs(&wakeup, &expected, &wakeup_latency);
 
     latency = timespec_to_long(&wakeup_latency);
-    hist.add(latency);
-    timeSeries.add(latency);
+    if (hist) {
+      hist->add(latency);
+    }
+    if (timeSeries) {
+      timeSeries->add(latency);
+    }
   }
 
-  hist.saveHist(params.hist_filename);
-  hist.saveTopN(params.topn_filename);
-  timeSeries.save(params.timeseries_filename);
+  if ( !params.hist_filename.empty() ) {
+    hist->saveHist(params.hist_filename);
+  }
+  if ( !params.topn_filename.empty() ) {
+    hist->saveTopN(params.topn_filename);
+  }
+  if ( !params.timeseries_filename.empty() ) {
+    timeSeries->save(params.timeseries_filename);
+  }
 
   rclcpp::shutdown();
   return 0;
