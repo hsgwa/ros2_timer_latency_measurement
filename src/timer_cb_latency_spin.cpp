@@ -22,6 +22,7 @@
 
 using namespace std::chrono_literals;
 using namespace std;
+using namespace std::chrono;
 
 using rclcpp::memory_strategies::allocator_memory_strategy:: AllocatorMemoryStrategy;
 
@@ -37,7 +38,8 @@ Params get_params(int argc, char *argv[]);
 
 class Timer : public rclcpp::Node {
 public:
-  explicit Timer(const rclcpp::NodeOptions &options) : Node("timer", options) {
+  explicit Timer(const rclcpp::NodeOptions &options, nanoseconds ns)
+      : Node("timer", options) {
     auto callback = [this]() -> void {
       count_++;
       if (rcl_timer_get_time_since_last_call(&(*timer_->get_timer_handle()),
@@ -54,7 +56,7 @@ public:
       }
     };
 
-    timer_ = create_wall_timer(10ms, callback);
+    timer_ = create_wall_timer(ns, callback);
   }
 
   HistReport *cbHist_;
@@ -90,7 +92,7 @@ int main(int argc, char *argv[]) {
   // FastRTPS    : 5 threads / node
   // CyclondeDDS : 7 threads
   rclcpp::NodeOptions options;
-  auto node = make_shared<Timer>(options);
+  auto node = make_shared<Timer>(options, toChronoDuration(params.rt.update_period));
   exec->add_node(node);
 
   if (!params.realtime_child && rttest_set_thread_default_priority()) {

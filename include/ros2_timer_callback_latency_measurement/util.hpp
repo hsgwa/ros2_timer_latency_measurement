@@ -1,5 +1,7 @@
 #include <string>
 #include <vector>
+#include <chrono>
+
 class Hist;
 class TimeSeries;
 
@@ -36,3 +38,5 @@ class TimeSeriesReport {
    int idx_;
    std::vector<uint64_t> data_;
 };
+
+std::chrono::nanoseconds toChronoDuration(timespec ts);

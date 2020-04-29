@@ -22,6 +22,7 @@
 
 using namespace std::chrono_literals;
 using namespace std;
+using namespace std::chrono;
 
 using rclcpp::memory_strategies::allocator_memory_strategy:: AllocatorMemoryStrategy;
 
@@ -64,8 +65,9 @@ int main(int argc, char *argv[]) {
   exec->add_node(node);
   struct timespec  cb_wakeup, cb_wakeup_latency;
   vector<uint64_t> wakeup_latencies(params.rt.iterations);
+
   auto timer = node->create_wall_timer(
-      5ms, // TODO: set half period of params.rt.iteration. every spin_some call timer callback.
+      toChronoDuration(params.rt.update_period) * 0.5, // every spin_some calls callback.
       [&]() { clock_gettime(CLOCK_MONOTONIC, &cb_wakeup); });
 
   if (!params.realtime_child && rttest_set_thread_default_priority()) {

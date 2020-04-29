@@ -84,3 +84,9 @@ void TimeSeriesReport::toCsv(std::string filename) {
     ofs << i << "," << data_[i] << endl;
   }
 }
+
+std::chrono::nanoseconds toChronoDuration(timespec ts) {
+  using namespace std::chrono;
+  auto duration = seconds{ts.tv_sec} + nanoseconds{ts.tv_nsec};
+  return duration_cast<nanoseconds>(duration);
+}
