@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (!params.cb_hist_filename.empty() || !params.cb_topn_filename.empty()) {
-    node->cbHist_ = new HistReport(100);
+    node->cbHist_ = new HistReport(1000);
   }
   if (!params.cb_timeseries_filename.empty()) {
     node->cbTimeSeries_ = new TimeSeriesReport(params.rt.iterations);

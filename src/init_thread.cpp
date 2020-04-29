@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
   HistReport *hist = nullptr;
   TimeSeriesReport *timeSeries =nullptr;
   if ( !params.hist_filename.empty() || !params.timeseries_filename.empty()) {
-    hist = new HistReport(100);
+    hist = new HistReport(1000);
   }
   if (!params.timeseries_filename.empty()) {
     timeSeries = new TimeSeriesReport(params.rt.iterations);

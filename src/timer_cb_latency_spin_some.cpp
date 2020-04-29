@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
   HistReport *wakeupHist = nullptr;
   TimeSeriesReport *wakeupTimeSeries = nullptr;
   if (!params.wakeup_hist_filename.empty() || !params.wakeup_topn_filename.empty()) {
-    wakeupHist = new HistReport(100);
+    wakeupHist = new HistReport(1000);
   }
   if (!params.wakeup_timeseries_filename.empty()) {
     wakeupTimeSeries = new TimeSeriesReport(params.rt.iterations);
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
   HistReport *cbHist = nullptr;
   TimeSeriesReport *cbTimeSeries = nullptr;
   if (!params.cb_hist_filename.empty() || !params.cb_topn_filename.empty()) {
-    cbHist = new HistReport(100);
+    cbHist = new HistReport(1000);
   }
   if (!params.wakeup_timeseries_filename.empty()) {
     cbTimeSeries = new TimeSeriesReport(params.rt.iterations);
