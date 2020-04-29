@@ -20,9 +20,6 @@
 #include <malloc.h>
 #include <sys/mman.h>
 
-#define TRUE 1
-#define FALSE 0
-
 using namespace std::chrono_literals;
 using namespace std;
 
@@ -49,15 +46,28 @@ int main(int argc, char *argv[]) {
     perror("Couldn't set scheduling priority and policy");
     // return -1;
   }
+
+  // 1 thread created. child thread inheritaneces parent thread sched params.
   rclcpp::init(argc, argv);
 
+  // define executor
   rclcpp::executor::ExecutorArgs args;
   rclcpp::memory_strategy::MemoryStrategy::SharedPtr memory_strategy =
       std::make_shared<AllocatorMemoryStrategy<TLSFAllocator<void>>>();
   args.memory_strategy = memory_strategy;
   auto exec = std::make_shared<rclcpp::executors::SingleThreadedExecutor>(args);
+
+  // multi threads created. child threads inheritaneces parent thread sched params.
+  // FastRTPS    : 5 threads / node
+  // CyclondeDDS : 7 threads
   auto node = rclcpp::Node::make_shared("sample_node");
   exec->add_node(node);
+  struct timespec  cb_wakeup, cb_wakeup_latency;
+  vector<uint64_t> wakeup_latencies(params.rt.iterations);
+  auto timer = node->create_wall_timer(
+      5ms, // TODO: set half period of params.rt.iteration. every spin_some call timer callback.
+      [&]() { clock_gettime(CLOCK_MONOTONIC, &cb_wakeup); });
+
   if (!params.realtime_child && rttest_set_thread_default_priority()) {
     perror("Couldn't set scheduling priority and policy");
     // return -1;
@@ -81,19 +91,15 @@ int main(int argc, char *argv[]) {
     cbTimeSeries = new TimeSeriesReport(params.rt.iterations);
   }
 
-  struct timespec expected, wakeup, wakeup_latency, cb_wakeup, cb_wakeup_latency;
-  vector<uint64_t> wakeup_latencies(params.rt.iterations);
-  auto timer = node->create_wall_timer(
-      5ms, [&]() { clock_gettime(CLOCK_MONOTONIC, &cb_wakeup); });
 
   if (rttest_lock_and_prefault_dynamic() != 0) {
-    fprintf(stderr, "Couldn't lock all cached virtual memory. errno = %d \n",
-            errno);
+    fprintf(stderr, "Couldn't lock all cached virtual memory. errno = %d \n", errno);
     fprintf(stderr, "Pagefaults from reading pages not yet mapped into RAM "
                     "will be recorded.\n");
   }
 
   uint64_t latency;
+  struct timespec expected, wakeup, wakeup_latency;
   clock_gettime(CLOCK_MONOTONIC, &expected);
 
   for (unsigned long i = 0; i < params.rt.iterations; i++) {
@@ -123,24 +129,25 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // export to csv files.
   if( !params.wakeup_hist_filename.empty() ) {
-    wakeupHist->saveHist(params.wakeup_hist_filename);
+    wakeupHist->histToCsv(params.wakeup_hist_filename);
   }
   if( !params.wakeup_topn_filename.empty() ) {
-    wakeupHist->saveTopN(params.wakeup_topn_filename);
+    wakeupHist->topnToHist(params.wakeup_topn_filename);
   }
   if( !params.wakeup_timeseries_filename.empty() ) {
-    wakeupTimeSeries->save(params.wakeup_timeseries_filename);
+    wakeupTimeSeries->toCsv(params.wakeup_timeseries_filename);
   }
 
   if( !params.cb_hist_filename.empty() ) {
-    cbHist->saveHist(params.cb_hist_filename);
+    cbHist->histToCsv(params.cb_hist_filename);
   }
   if( !params.cb_hist_filename.empty() ) {
-    cbHist->saveTopN(params.cb_topn_filename);
+    cbHist->topnToHist(params.cb_topn_filename);
   }
   if( !params.cb_timeseries_filename.empty() ) {
-    cbTimeSeries->save(params.cb_timeseries_filename);
+    cbTimeSeries->toCsv(params.cb_timeseries_filename);
   }
 
   rclcpp::shutdown();
@@ -152,23 +159,25 @@ Params get_params(int argc, char *argv[]) {
   int realtime_child = 0; // default: non-realtime
 
   const struct option longopts[] = {
-      {"realtime_child_thread", no_argument, &realtime_child, 1},
-      {"non_realtime_child_thread", no_argument, &realtime_child, 0},
-      {"wakeup_hist_filename", required_argument, 0, 'h'},
-      {"wakeup_topn_filename", required_argument, 0, 'n'},
-      {"wakeup_timeseries_filename", required_argument, 0, 't'},
-      {"cb_hist_filename", required_argument, 0, 'i'},
-      {"cb_topn_filename", required_argument, 0, 'u'},
-      {"cb_timeseries_filename", required_argument, 0, 'm'},
-      {0, 0, 0, 0},
+      // {name                     ,  has_arg,           flag,            val},
+      {"use_realtime_child_thread",   no_argument,       &realtime_child, 1},
+      {"unuse_realtime_child_thread", no_argument,       &realtime_child, 0},
+      {"wakeup_hist_filename",        required_argument, 0,               'h'},
+      {"wakeup_topn_filename",        required_argument, 0,               'n'},
+      {"wakeup_timeseries_filename",  required_argument, 0,               't'},
+      {"cb_hist_filename",            required_argument, 0,               'i'},
+      {"cb_topn_filename",            required_argument, 0,               'u'},
+      {"cb_timeseries_filename",      required_argument, 0,               'm'},
+      {0,                             0,                 0,               0},
   };
 
   opterr = 0;
   optind = 1;
   int longindex = 0;
-  const std::string optstring = "+";
   int c;
 
+  // parse arguments until undefined opt is found such as --rttest_args.
+  const std::string optstring = "+";
   while ((c = getopt_long(argc, argv, optstring.c_str(), longopts,
                           &longindex)) != -1) {
     switch (c) {
@@ -194,6 +203,7 @@ Params get_params(int argc, char *argv[]) {
   }
   params.realtime_child = realtime_child;
 
+  // forward argv and argc next to --rttest_args.
   argc -= optind - 2;
   argv += optind - 2;
 

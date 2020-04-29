@@ -40,7 +40,7 @@ void HistReport::add(uint64_t ns) {
   idx_++;
 }
 
-void HistReport::saveHist(std::string filename) {
+void HistReport::histToCsv(std::string filename) {
   ofstream hist_ofs(filename);
   if (!hist_ofs) {
     cerr << "failed to open " << filename << "." << endl;
@@ -52,7 +52,7 @@ void HistReport::saveHist(std::string filename) {
   }
 }
 
-void HistReport::saveTopN(std::string filename) {
+void HistReport::topnToHist(std::string filename) {
   ofstream topn_ofs(filename);
   if (!topn_ofs) {
     cerr << "failed to open " << filename << "." << endl;
@@ -71,7 +71,7 @@ TimeSeriesReport::TimeSeriesReport(int max_data_num) {
 }
 void TimeSeriesReport::add(uint64_t ns) { data_[idx_++] = ns; }
 
-void TimeSeriesReport::save(std::string filename) {
+void TimeSeriesReport::toCsv(std::string filename) {
   ofstream ofs(filename);
 
   if (!ofs) {

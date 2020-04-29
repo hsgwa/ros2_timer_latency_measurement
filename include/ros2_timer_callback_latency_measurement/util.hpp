@@ -8,8 +8,8 @@ class HistReport {
  public:
   HistReport(int bins_num, uint64_t bin_width_ns=1000, int max_topn=10);
   void add(uint64_t ns);
-  void saveHist(std::string filename);
-  void saveTopN(std::string filename);
+  void histToCsv(std::string filename);
+  void topnToHist(std::string filename);
 
 private:
   inline int getNextIdx(const int &i);
@@ -29,7 +29,7 @@ class TimeSeriesReport {
  public:
    TimeSeriesReport(int max_data_num);
    void add(uint64_t ns);
-   void save(std::string filename);
+   void toCsv(std::string filename);
 
  private:
    int max_data_num_;

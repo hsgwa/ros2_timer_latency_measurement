@@ -1,3 +1,4 @@
+// TODO: remove unused includes.
 #include "rclcpp/executor.hpp"
 #include "rclcpp/executors.hpp"
 #include "rclcpp/node.hpp"
@@ -19,9 +20,6 @@
 
 #include <malloc.h>
 #include <sys/mman.h>
-
-#define TRUE 1
-#define FALSE 0
 
 using namespace std::chrono_literals;
 using namespace std;
@@ -46,6 +44,8 @@ int main(int argc, char *argv[]) {
     perror("Couldn't set scheduling priority and policy");
     // return -1;
   }
+
+  // 1 thread created. child thread inheritaneces parent thread sched params.
   rclcpp::init(argc, argv);
   if (!params.realtime_child && rttest_set_thread_default_priority()) {
     perror("Couldn't set scheduling priority and policy");
@@ -91,14 +91,15 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // export to csv files.
   if ( !params.hist_filename.empty() ) {
-    hist->saveHist(params.hist_filename);
+    hist->histToCsv(params.hist_filename);
   }
   if ( !params.topn_filename.empty() ) {
-    hist->saveTopN(params.topn_filename);
+    hist->topnToHist(params.topn_filename);
   }
   if ( !params.timeseries_filename.empty() ) {
-    timeSeries->save(params.timeseries_filename);
+    timeSeries->toCsv(params.timeseries_filename);
   }
 
   rclcpp::shutdown();
@@ -110,20 +111,22 @@ Params get_params(int argc, char *argv[]) {
   int realtime_child = 0; // default: non-realtime
 
   const struct option longopts[] = {
-      {"realtime_child_thread", no_argument, &realtime_child, 1},
-      {"non_realtime_child_thread", no_argument, &realtime_child, 0},
-      {"hist_filename", required_argument, 0, 'h'},
-      {"topn_filename", required_argument, 0, 'n'},
-      {"timeseries_filename", required_argument, 0, 't'},
-      {0, 0, 0, 0},
+      // {name                     ,  has_arg,           flag,            val},
+      {"use_realtime_child_thread",   no_argument,       &realtime_child, 1},
+      {"unuse_realtime_child_thread", no_argument,       &realtime_child, 0},
+      {"hist_filename"             ,  required_argument, 0,               'h'},
+      {"topn_filename"             ,  required_argument, 0,               'n'},
+      {"timeseries_filename"       ,  required_argument, 0,               't'},
+      {0                           ,  0,                 0,               0},
   };
 
   opterr = 0;
   optind = 1;
   int longindex = 0;
-  const std::string optstring = "+";
   int c;
 
+  // parse arguments until undefined opt is found such as --rttest_args.
+  const std::string optstring = "+";
   while ((c = getopt_long(argc, argv, optstring.c_str(), longopts,
                           &longindex)) != -1) {
     switch (c) {
@@ -140,10 +143,10 @@ Params get_params(int argc, char *argv[]) {
   }
   params.realtime_child = realtime_child;
 
+  // forward argv and argc next to --rttest_args.
   argc -= optind - 2;
   argv += optind - 2;
 
-  cout << argv[1] << endl;
   if (rttest_read_args(argc, argv) != 0) {
     perror("Couldn't read arguments for rttest");
   }
