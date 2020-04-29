@@ -154,7 +154,6 @@ Params get_params(int argc, char *argv[]) {
   argc -= optind - 2;
   argv += optind - 2;
 
-  cout << argv[1] << endl;
   if (rttest_read_args(argc, argv) != 0) {
     perror("Couldn't read arguments for rttest");
   }
