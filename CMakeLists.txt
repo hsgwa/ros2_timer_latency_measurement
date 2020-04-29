@@ -17,7 +17,6 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(rttest REQUIRED)
 find_package(tlsf_cpp REQUIRED)
 find_package(rcl REQUIRED)
@@ -25,7 +24,7 @@ find_package(rcl REQUIRED)
 include_directories(include ${rcl_INCLUDE_DIRS} )
 
 add_executable(init_thread src/init_thread.cpp src/util.cpp)
-ament_target_dependencies(init_thread rclcpp std_msgs rttest tlsf_cpp)
+ament_target_dependencies(init_thread rclcpp rttest tlsf_cpp)
 install(TARGETS init_thread DESTINATION lib/${PROJECT_NAME})
 
 add_executable(init_and_node_thread src/init_and_node_thread.cpp src/util.cpp)
