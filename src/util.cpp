@@ -69,7 +69,12 @@ TimeSeriesReport::TimeSeriesReport(int max_data_num) {
   data_.resize(max_data_num_);
   idx_ = 0;
 }
-void TimeSeriesReport::add(uint64_t ns) { data_[idx_++] = ns; }
+void TimeSeriesReport::add(uint64_t ns) {
+  if (idx_ < max_data_num_) {
+    data_[idx_] = ns;
+  }
+  idx_++;
+}
 
 void TimeSeriesReport::toCsv(std::string filename) {
   ofstream ofs(filename);
