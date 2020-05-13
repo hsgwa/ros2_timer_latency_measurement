@@ -242,7 +242,7 @@ $ ps -em -o pid,tid,policy,pri,ni,rtprio,comm,psr | grep cyclic -A 2
 $ grep -v -e "^#" -e "^$"  result.txt | tr " " "," > histogram.csv # Extract only the histogram part
 ```
 
-![pure_vs_rt](/uploads/fdfbcfc6f52a6fc42b9d30f5228edde2/pure_vs_rt.png)
+![pure_vs_rt](./result/cyclictest_pure_kernel_vs_rt_kernel.png)
 
 The figure is a histogram of the latency to nanosleep wake-up, measured with a 200 us period sleep.
 The pure kernel result shows that sleep duration reaches from 210us to 300us at worst.
