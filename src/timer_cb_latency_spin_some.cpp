@@ -29,9 +29,6 @@ using rclcpp::memory_strategies::allocator_memory_strategy:: AllocatorMemoryStra
 struct Params {
   rttest_params rt;
   bool realtime_child;
-  string wakeup_hist_filename;
-  string wakeup_topn_filename;
-  string wakeup_timeseries_filename;
   string cb_hist_filename;
   string cb_topn_filename;
   string cb_timeseries_filename;
@@ -75,24 +72,11 @@ int main(int argc, char *argv[]) {
     // return -1;
   }
 
-  HistReport *wakeupHist = nullptr;
-  TimeSeriesReport *wakeupTimeSeries = nullptr;
-  if (!params.wakeup_hist_filename.empty() || !params.wakeup_topn_filename.empty()) {
-    wakeupHist = new HistReport(1000);
-  }
-  if (!params.wakeup_timeseries_filename.empty()) {
-    wakeupTimeSeries = new TimeSeriesReport(params.rt.iterations);
-  }
-
   HistReport *cbHist = nullptr;
   TimeSeriesReport *cbTimeSeries = nullptr;
   if (!params.cb_hist_filename.empty() || !params.cb_topn_filename.empty()) {
     cbHist = new HistReport(1000);
   }
-  if (!params.wakeup_timeseries_filename.empty()) {
-    cbTimeSeries = new TimeSeriesReport(params.rt.iterations);
-  }
-
 
   if (rttest_lock_and_prefault_dynamic() != 0) {
     fprintf(stderr, "Couldn't lock all cached virtual memory. errno = %d \n", errno);
@@ -101,25 +85,13 @@ int main(int argc, char *argv[]) {
   }
 
   uint64_t latency;
-  struct timespec expected, wakeup, wakeup_latency;
+  struct timespec expected;
   clock_gettime(CLOCK_MONOTONIC, &expected);
 
   for (unsigned long i = 0; i < params.rt.iterations; i++) {
     add_timespecs(&expected, &params.rt.update_period, &expected);
 
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &expected, NULL);
-    clock_gettime(CLOCK_MONOTONIC, &wakeup);
-
     exec->spin_some();
-
-    subtract_timespecs(&wakeup, &expected, &wakeup_latency);
-    latency = timespec_to_long(&wakeup_latency);
-    if( wakeupHist ) {
-      wakeupHist->add(latency);
-    }
-    if( wakeupTimeSeries ) {
-      wakeupTimeSeries->add(latency);
-    }
 
     subtract_timespecs(&cb_wakeup, &expected, &cb_wakeup_latency);
     latency = timespec_to_long(&cb_wakeup_latency);
@@ -132,15 +104,6 @@ int main(int argc, char *argv[]) {
   }
 
   // export to csv files.
-  if( !params.wakeup_hist_filename.empty() ) {
-    wakeupHist->histToCsv(params.wakeup_hist_filename);
-  }
-  if( !params.wakeup_topn_filename.empty() ) {
-    wakeupHist->topnToHist(params.wakeup_topn_filename);
-  }
-  if( !params.wakeup_timeseries_filename.empty() ) {
-    wakeupTimeSeries->toCsv(params.wakeup_timeseries_filename);
-  }
 
   if( !params.cb_hist_filename.empty() ) {
     cbHist->histToCsv(params.cb_hist_filename);
@@ -167,9 +130,6 @@ Params get_params(int argc, char *argv[]) {
       {"wakeup_hist_filename",        required_argument, 0,               'h'},
       {"wakeup_topn_filename",        required_argument, 0,               'n'},
       {"wakeup_timeseries_filename",  required_argument, 0,               't'},
-      {"cb_hist_filename",            required_argument, 0,               'i'},
-      {"cb_topn_filename",            required_argument, 0,               'u'},
-      {"cb_timeseries_filename",      required_argument, 0,               'm'},
       {0,                             0,                 0,               0},
   };
 
@@ -184,21 +144,12 @@ Params get_params(int argc, char *argv[]) {
                           &longindex)) != -1) {
     switch (c) {
     case ('h'):
-      params.wakeup_hist_filename = optarg;
-      break;
-    case ('n'):
-      params.wakeup_topn_filename = optarg;
-      break;
-    case ('t'):
-      params.wakeup_timeseries_filename = optarg;
-      break;
-    case ('i'):
       params.cb_hist_filename = optarg;
       break;
-    case ('u'):
+    case ('n'):
       params.cb_topn_filename = optarg;
       break;
-    case ('m'):
+    case ('t'):
       params.cb_timeseries_filename = optarg;
       break;
     }

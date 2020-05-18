@@ -139,9 +139,9 @@ Params get_params(int argc, char *argv[]) {
       // {name                     ,  has_arg,           flag,            val},
       {"use_realtime_child_thread",   no_argument,       &realtime_child, 1},
       {"unuse_realtime_child_thread", no_argument,       &realtime_child, 0},
-      {"cb_hist_filename",            required_argument, 0,               'h'},
-      {"cb_topn_filename",            required_argument, 0,               'n'},
-      {"cb_timeseries_filename",      required_argument, 0,               't'},
+      {"hist_filename",            required_argument, 0,               'h'},
+      {"topn_filename",            required_argument, 0,               'n'},
+      {"timeseries_filename",      required_argument, 0,               't'},
       {0,                             0,                 0,               0},
   };
 
