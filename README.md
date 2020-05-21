@@ -48,7 +48,7 @@ source ~/ros2_eloquent/install/setup.bash
 source ~/ros2_ws/install/local_setup.sh
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
-taskset -c 1 /home/pi/ros2_experiment/ws/build/ros2_timer_latency_measurement/init_thread \
+taskset -c 1 ~/ros2_ws/build/ros2_timer_latency_measurement/init_thread \
         --use_realtime_child_thread \
         --timeseries_filename timeseries.csv \
         --hist_filename raw/hist.csv \
