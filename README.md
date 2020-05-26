@@ -23,7 +23,7 @@ The main environment is as follows:
 - Hardware : Raspberry Pi 3B +
 - OS : ubuntu 18.04 4.19.55-rt24-v7+
 - ROS Distro : ROS 2 Eloquent Elusor
-- DDS : FastRTPS or CycloneDDS
+- DDS : FastRTPS(v1.9.3P1) or CycloneDDS(0.1.0)
 
 For building environment, see [setup.md](./setup.md).
 
