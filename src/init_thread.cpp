@@ -5,7 +5,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "ros2_timer_callback_latency_measurement/util.hpp"
 #include "rttest/rttest.h"
-#include "rttest/utils.h"
+#include "rttest/utils.hpp"
 #include <bits/stdint-uintn.h>
 #include <chrono>
 #include <getopt.h> // for getopt_long
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 
     subtract_timespecs(&wakeup, &expected, &wakeup_latency);
 
-    latency = timespec_to_long(&wakeup_latency);
+    latency = timespec_to_uint64(&wakeup_latency);
     if (hist) {
       hist->add(latency);
     }

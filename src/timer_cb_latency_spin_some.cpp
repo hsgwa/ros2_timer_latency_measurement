@@ -4,7 +4,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "ros2_timer_callback_latency_measurement/util.hpp"
 #include "rttest/rttest.h"
-#include "rttest/utils.h"
+#include "rttest/utils.hpp"
 #include <bits/stdint-uintn.h>
 #include <chrono>
 #include <getopt.h> // for getopt_long
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
   // define executor
-  rclcpp::executor::ExecutorArgs args;
+  rclcpp::ExecutorOptions args;
   rclcpp::memory_strategy::MemoryStrategy::SharedPtr memory_strategy =
       std::make_shared<AllocatorMemoryStrategy<TLSFAllocator<void>>>();
   args.memory_strategy = memory_strategy;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     exec->spin_some();
 
     subtract_timespecs(&cb_wakeup, &expected, &cb_wakeup_latency);
-    latency = timespec_to_long(&cb_wakeup_latency);
+    latency = timespec_to_uint64(&cb_wakeup_latency);
     if( cbHist ) {
       cbHist->add(latency);
     }

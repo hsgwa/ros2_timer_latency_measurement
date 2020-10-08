@@ -4,7 +4,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "ros2_timer_callback_latency_measurement/util.hpp"
 #include "rttest/rttest.h"
-#include "rttest/utils.h"
+#include "rttest/utils.hpp"
 #include <bits/stdint-uintn.h>
 #include <chrono>
 #include <getopt.h> // for getopt_long
