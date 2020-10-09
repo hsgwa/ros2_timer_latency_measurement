@@ -38,34 +38,43 @@ Params get_params(int argc, char *argv[]);
 class Timer : public rclcpp::Node {
 public:
   explicit Timer(const rclcpp::NodeOptions &options, nanoseconds ns)
-      : Node("timer", options) {
+      : Node("timer", options),
+        count_(0) {
     auto callback = [this]() -> void {
-      count_++;
-      if (rcl_timer_get_time_since_last_call(&(*timer_->get_timer_handle()),
-                                             &latency_) == RCL_RET_OK) {
+      if (count_++ > 0) {
+        count_++;
+        clock_gettime(CLOCK_MONOTONIC_RAW, &wakeup);
+        latency_ = timespec_to_uint64(&wakeup) - time_next_call_;
+
         if (cbHist_) {
           cbHist_->add(latency_);
         }
         if (cbTimeSeries_) {
           cbTimeSeries_->add(latency_);
         }
-      }
+      };
+
+      if (rcl_timer_get_time_next_call(&(*timer_->get_timer_handle()),
+                                       &time_next_call_) != RCL_RET_OK) {
+        std::cerr << "failed to get next call time" << std::endl;
+      };
       if (count_ > count_max_) {
         raise(SIGINT);
       }
     };
-
     timer_ = create_wall_timer(ns, callback);
   }
 
   HistReport *cbHist_;
   TimeSeriesReport *cbTimeSeries_;
-  int count_ = 0;
+  int count_;
   int count_max_;
 
- private:
-   int64_t latency_;
-   rclcpp::TimerBase::SharedPtr timer_;
+private:
+  struct timespec wakeup;
+  int64_t latency_;
+  int64_t time_next_call_;
+  rclcpp::TimerBase::SharedPtr timer_;
 };
 
 int sched_setpriority(const pthread_t &thread, int priority){
