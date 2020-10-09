@@ -31,6 +31,10 @@ add_executable(init_and_node_thread src/init_and_node_thread.cpp src/util.cpp)
 ament_target_dependencies(init_and_node_thread rclcpp rttest tlsf_cpp)
 install(TARGETS init_and_node_thread DESTINATION lib/${PROJECT_NAME})
 
+add_executable(init_and_node_thread_futex src/init_and_node_thread_futex.cpp src/util.cpp)
+ament_target_dependencies(init_and_node_thread_futex rclcpp rttest tlsf_cpp)
+install(TARGETS init_and_node_thread_futex DESTINATION lib/${PROJECT_NAME})
+
 add_executable(timer_cb_latency_spin src/timer_cb_latency_spin.cpp src/util.cpp)
 ament_target_dependencies(timer_cb_latency_spin rclcpp rttest tlsf_cpp)
 install(TARGETS timer_cb_latency_spin DESTINATION lib/${PROJECT_NAME})
