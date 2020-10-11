@@ -146,6 +146,8 @@ int main(int argc, char *argv[]) {
   }
   if( !params.topn_filename.empty() ) {
     hist->topnToHist(params.topn_filename);
+    hist_mono->topnToHist(params.topn_filename + ".mono");
+    hist_mono_raw->topnToHist(params.topn_filename + ".mono_raw");
   }
   if( !params.timeseries_filename.empty() ) {
     timeSeries->toCsv(params.timeseries_filename);
