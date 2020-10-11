@@ -39,6 +39,10 @@ add_executable(timer_cb_latency_spin src/timer_cb_latency_spin.cpp src/util.cpp)
 ament_target_dependencies(timer_cb_latency_spin rclcpp rttest tlsf_cpp)
 install(TARGETS timer_cb_latency_spin DESTINATION lib/${PROJECT_NAME})
 
+add_executable(timer_wakeup_latency src/timer_wakeup_latency.cpp src/util.cpp)
+ament_target_dependencies(timer_wakeup_latency rclcpp rttest tlsf_cpp)
+install(TARGETS timer_wakeup_latency DESTINATION lib/${PROJECT_NAME})
+
 add_executable(timer_cb_latency_spin_some src/timer_cb_latency_spin_some.cpp src/util.cpp)
 ament_target_dependencies(timer_cb_latency_spin_some rclcpp rttest tlsf_cpp)
 install(TARGETS timer_cb_latency_spin_some DESTINATION lib/${PROJECT_NAME})
