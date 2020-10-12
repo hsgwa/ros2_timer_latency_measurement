@@ -26,6 +26,7 @@ struct Params {
   rttest_params rt;
   int priority;
   int clock_type;
+  int debug_print;
   string nanosleep;
   string hist_filename;
   string topn_filename;
@@ -128,6 +129,10 @@ int main(int argc, char *argv[]) {
     latency_mono = timespec_to_uint64(&wakeup_latency_mono);
     latency_mono_raw = timespec_to_uint64(&wakeup_latency_mono_raw);
 
+    if (params.debug_print>0) {
+      std::cout << i << "," << latency_mono_raw << std::endl;
+    }
+
     if (hist) {
       hist->add(latency);
       hist_mono->add(latency_mono);
@@ -160,8 +165,10 @@ int main(int argc, char *argv[]) {
 Params get_params(int argc, char *argv[]) {
   Params params;
 
+  params.debug_print = 0;
   const struct option longopts[] = {
       // {name                     ,  has_arg,           flag,            val},
+      {"debug_print", no_argument, &params.debug_print, TRUE},
       {"priority", required_argument, 0, 'p'},
       {"hist_filename", required_argument, 0, 'h'},
       {"topn_filename", required_argument, 0, 'n'},
