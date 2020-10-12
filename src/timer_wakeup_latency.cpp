@@ -95,11 +95,12 @@ int main(int argc, char *argv[]) {
   struct timespec expected_mono, wakeup_mono, wakeup_latency_mono;
   struct timespec expected_mono_raw, wakeup_mono_raw, wakeup_latency_mono_raw;
 
-  clock_gettime(CLOCK_REALTIME, &expected);
-  clock_gettime(CLOCK_MONOTONIC, &expected_mono);
-  clock_gettime(CLOCK_MONOTONIC_RAW, &expected_mono_raw);
 
   for (unsigned long i = 0; i < params.rt.iterations; i++) {
+    clock_gettime(CLOCK_REALTIME, &expected);
+    clock_gettime(CLOCK_MONOTONIC, &expected_mono);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &expected_mono_raw);
+
     add_timespecs(&expected, &params.rt.update_period, &expected);
     add_timespecs(&expected_mono, &params.rt.update_period, &expected_mono);
     add_timespecs(&expected_mono_raw, &params.rt.update_period, &expected_mono_raw);
