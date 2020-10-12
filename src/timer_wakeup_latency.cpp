@@ -95,11 +95,10 @@ int main(int argc, char *argv[]) {
   struct timespec expected_mono, wakeup_mono, wakeup_latency_mono;
   struct timespec expected_mono_raw, wakeup_mono_raw, wakeup_latency_mono_raw;
 
-
+  clock_gettime(CLOCK_REALTIME, &expected);
+  clock_gettime(CLOCK_MONOTONIC, &expected_mono);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &expected_mono_raw);
   for (unsigned long i = 0; i < params.rt.iterations; i++) {
-    clock_gettime(CLOCK_REALTIME, &expected);
-    clock_gettime(CLOCK_MONOTONIC, &expected_mono);
-    clock_gettime(CLOCK_MONOTONIC_RAW, &expected_mono_raw);
 
     add_timespecs(&expected, &params.rt.update_period, &expected);
     add_timespecs(&expected_mono, &params.rt.update_period, &expected_mono);
@@ -131,7 +130,13 @@ int main(int argc, char *argv[]) {
     latency_mono_raw = timespec_to_uint64(&wakeup_latency_mono_raw);
 
     if (params.debug_print>0) {
-      std::cout << i << "," << latency_mono_raw << std::endl;
+      if (nanosleep_clock == CLOCK_MONOTONIC) {
+        std::cout << i << "," << timespec_to_uint64(&wakeup_mono_raw) <<
+            ", " << latency_mono << std::endl;
+      } else {
+        std::cout << i << "," << timespec_to_uint64(&wakeup_mono_raw) << ", "
+                  << latency_mono_raw << std::endl;
+      }
     }
 
     if (hist) {
